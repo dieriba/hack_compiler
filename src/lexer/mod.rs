@@ -67,6 +67,8 @@ pub struct Token<'input> {
 
 pub struct Lexer<'input> {
     input: &'input str,
+    lines: usize,
+    col: usize,
 }
 
 impl<'input> Lexer<'input> {}
