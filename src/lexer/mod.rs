@@ -1,5 +1,20 @@
 use anyhow::Result;
 
+enum PunctuationKind {
+    Comma,
+    Dot,
+    SemiColon,
+}
+
+enum BracketKinds {
+    LParen,
+    RParen,
+    LSquare,
+    RSquare,
+    LBraces,
+    RBraces,
+}
+
 enum UnaryOperatorKind {
     Not,
     Invert,
@@ -49,12 +64,15 @@ enum KeywordKind {
     Return,
 }
 enum TokenKind<'input> {
+    Identifiers,
     Number(i16),
     StringLiteral(&'input str),
-    Identifiers,
     Keyword(KeywordKind),
     UnaryOperator(UnaryOperatorKind),
     BinaryOperator(BinaryOperatorKind),
+    Brackets(BracketKinds),
+    Punctuation(PunctuationKind),
+    Slash,
     EOF,
 }
 
