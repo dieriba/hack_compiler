@@ -12,7 +12,8 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-
+    let mut lexer = Lexer::new("ok");
+    lexer.next();
     println!("{}", args.filename);
     Ok(())
 }
