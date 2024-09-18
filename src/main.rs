@@ -1,4 +1,5 @@
 pub mod lexer;
+mod keywords;
 use anyhow::Result;
 use clap::Parser;
 use lexer::Lexer;

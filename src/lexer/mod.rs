@@ -1,26 +1,5 @@
+use crate::keywords::KEYWORDS_TABLE;
 use anyhow::Result;
-
-enum LiteralType {
-    I16,
-    Str,
-}
-
-trait IsType {
-    fn get_type(&self) -> LiteralType;
-}
-
-impl IsType for str {
-    fn get_type(&self) -> LiteralType {
-        LiteralType::Str
-    }
-}
-
-impl IsType for i16 {
-    fn get_type(&self) -> LiteralType {
-        LiteralType::I16
-    }
-}
-
 #[macro_export]
 macro_rules! Token {
     [,] => { Token::new(TokenKind::Punctuation(PunctuationKind::Comma)) };
@@ -29,27 +8,33 @@ macro_rules! Token {
     [!] => { Token::new(TokenKind::UnaryOperator(UnaryOperatorKind::Not)) };
     [~] => { Token::new(TokenKind::UnaryOperator(UnaryOperatorKind::Invert)) };
     [=] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::Equal)) };
-    [= =] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::EqualEqual)) };
+    [==] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::EqualEqual)) };
     [+] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::Plus)) };
     [++] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::PlusPlus)) };
-    [+ =] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::PlusEqual)) };
+    [+=] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::PlusEqual)) };
     [-] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::Minus)) };
     [--] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::MinusMinus)) };
-    [- =] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::MinusEqual)) };
+    [-=] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::MinusEqual)) };
     [*] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::Star)) };
-    [* =] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::StarEqual)) };
+    [*=] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::StarEqual)) };
     [/] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::Divide)) };
-    [/ =] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::DivideEqual)) };
+    [/=] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::DivideEqual)) };
     [>] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::Greater)) };
-    [> =] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::GreaterEqual)) };
+    [>=] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::GreaterEqual)) };
     [<] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::Less)) };
-    [< =] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::LessEqual)) };
+    [<=] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::LessEqual)) };
     [&] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::And)) };
-    [& =] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::AndEqual)) };
+    [&=] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::AndEqual)) };
     [|] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::Or)) };
-    [| =] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::OrEqual)) };
+    [|=] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::OrEqual)) };
     [&&] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::AndAnd)) };
     [||] => { Token::new(TokenKind::BinaryOperator(BinaryOperatorKind::OrOr)) };
+    ['('] => { Token::new(TokenKind::Brackets(BracketKinds::LParen)) };
+    [')'] => { Token::new(TokenKind::Brackets(BracketKinds::RParen)) };
+    ['['] => { Token::new(TokenKind::Brackets(BracketKinds::LSquare)) };
+    [']'] => { Token::new(TokenKind::Brackets(BracketKinds::RSquare)) };
+    ['{'] => { Token::new(TokenKind::Brackets(BracketKinds::LBraces)) };
+    ['}'] => { Token::new(TokenKind::Brackets(BracketKinds::RBraces)) };
     [class] => { Token::new(TokenKind::Keyword(KeywordKind::Class)) };
     [constructor] => { Token::new(TokenKind::Keyword(KeywordKind::Constructor)) };
     [function] => { Token::new(TokenKind::Keyword(KeywordKind::Function)) };
@@ -72,17 +57,19 @@ macro_rules! Token {
     [while] => { Token::new(TokenKind::Keyword(KeywordKind::While)) };
     [return] => { Token::new(TokenKind::Keyword(KeywordKind::Return)) };
     [$ident:ident] => { Token::new(TokenKind::Identifiers($ident)) };
-    [$literal:literal, &str] => { Token::new(TokenKind::Literal(LiteralKind::String($literal))) };
+    [$literal:ident, &str] => { Token::new(TokenKind::Literal(LiteralKind::String($literal))) };
     [$literal:literal, i16] => { Token::new(TokenKind::Literal(LiteralKind::Number($literal))) };
     [EOF] => { Token::new(TokenKind::EOF) }
 }
 
+#[derive(Debug)]
 enum PunctuationKind {
     Comma,
     Dot,
     SemiColon,
 }
 
+#[derive(Debug)]
 enum BracketKinds {
     LParen,
     RParen,
@@ -92,11 +79,13 @@ enum BracketKinds {
     RBraces,
 }
 
+#[derive(Debug)]
 enum UnaryOperatorKind {
     Not,
     Invert,
 }
 
+#[derive(Debug)]
 enum BinaryOperatorKind {
     Equal,
     EqualEqual,
@@ -122,6 +111,7 @@ enum BinaryOperatorKind {
     OrEqual,
 }
 
+#[derive(Debug)]
 enum KeywordKind {
     Class,
     Constructor,
@@ -146,10 +136,12 @@ enum KeywordKind {
     Return,
 }
 
+#[derive(Debug)]
 enum LiteralKind<'input> {
     Number(i16),
     String(&'input str),
 }
+#[derive(Debug)]
 enum TokenKind<'input> {
     Identifiers(&'input str),
     Literal(LiteralKind<'input>),
@@ -204,40 +196,73 @@ impl<'input> Iterator for Lexer<'input> {
     type Item = Token<'input>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        macro_rules! duplicate_token {
-            () => {};
-        }
-
-        macro_rules! bind_equal_token_to_token_or_not {
-            ($token: tt, $c:ident, $view:ident) => {{
-                let next_token = $view.peek();
-                match next_token {
-                    Some('=') => {
-                        $view.next();
-                        Token![$token =]
-                    }
-                    Some(n) if *n == $c => Token![$token],
-                    _ => Token![$token],
-                }
-            }};
-        }
-        let c = 'c';
         self.input = self.input.trim_start();
         let mut view = self.input.chars().peekable();
         let c = view.next()?;
+        let mut duplicate_token_or_add_equal_token =
+            |token_kind: Token<'input>,
+             token_kind_with_eq: Token<'input>,
+             duplicate_token_kind: Option<Token<'input>>|
+             -> Token<'input> {
+                let next_token = view.peek();
+                match next_token {
+                    Some('=') => {
+                        view.next();
+                        token_kind_with_eq
+                    }
+                    Some(val) if *val == c && duplicate_token_kind.is_some() => {
+                        view.next();
+                        duplicate_token_kind.unwrap()
+                    }
+                    Some(_) | None => token_kind,
+                }
+            };
         let token = match c {
-            '=' => bind_equal_token_to_token_or_not!(=, c, view),
-            '+' => bind_equal_token_to_token_or_not!(+, c, view),
-            '-' => bind_equal_token_to_token_or_not!(-, c, view),
-            '*' => bind_equal_token_to_token_or_not!(*, c, view),
-            '/' => bind_equal_token_to_token_or_not!(/, c, view),
-            '>' => bind_equal_token_to_token_or_not!(>, c, view),
-            '<' => bind_equal_token_to_token_or_not!(<, c, view),
-            '&' => bind_equal_token_to_token_or_not!(&, c, view),
-            '|' => bind_equal_token_to_token_or_not!(|, c, view),
+            '(' => Token!['('],
+            ')' => Token![')'],
+            '[' => Token!['['],
+            ']' => Token![']'],
+            '{' => Token!['{'],
+            '}' => Token!['}'],
+            '.' => Token![.],
+            ';' => Token![;],
+            ',' => Token![,],
+            '!' => Token![!],
+            '~' => Token![~],
+            '=' => duplicate_token_or_add_equal_token(Token![=], Token![==], Some(Token![==])),
+            '+' => duplicate_token_or_add_equal_token(Token![+], Token![+=], Some(Token![++])),
+            '-' => duplicate_token_or_add_equal_token(Token![-], Token![-=], Some(Token![--])),
+            '*' => duplicate_token_or_add_equal_token(Token![*], Token![*=], None),
+            '/' => duplicate_token_or_add_equal_token(Token![/], Token![/=], None),
+            '>' => duplicate_token_or_add_equal_token(Token![>], Token![>=], None),
+            '<' => duplicate_token_or_add_equal_token(Token![<], Token![<=], None),
+            '&' => duplicate_token_or_add_equal_token(Token![&], Token![&=], Some(Token![&&])),
+            '|' => duplicate_token_or_add_equal_token(Token![|], Token![|=], Some(Token![||])),
+            '0'..='9' => {
+                unimplemented!()
+            }
+            '"' => {
+                unimplemented!()
+            }
+            '_' | 'a'..='z' | 'A'..='Z' => {
+                let token = if let Some(pos) = view.position(|x| x.is_whitespace()) {
+                    let sub_slice = &self.input[..pos];
+                    self.input = &self.input[pos..];
+                    sub_slice
+                } else {
+                    let str = self.input;
+                    self.input = &self.input[self.input.len()..];
+                    str
+                };
+
+                if KEYWORDS_TABLE.get(token).is_some() {
+                    return Token![]
+                }
+
+                token
+            }
             _ => Token::new(TokenKind::EOF),
         };
-
         None
     }
 }
