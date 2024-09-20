@@ -1,5 +1,7 @@
-pub mod lexer;
 mod keywords;
+pub mod lexer;
+use std::fs;
+
 use anyhow::Result;
 use clap::Parser;
 use lexer::Lexer;
@@ -13,8 +15,12 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    let mut lexer = Lexer::new("ok");
-    lexer.next();
-    println!("{}", args.filename);
+    let file = fs::read_to_string(args.filename)?;
+    let lexer = Lexer::new(&file);
+    for token in lexer {
+        if let Ok(token) = token {
+            println!("{:#?}", token);
+        }
+    }
     Ok(())
 }
