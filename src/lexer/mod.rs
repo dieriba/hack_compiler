@@ -1,3 +1,5 @@
+use std::{iter::Peekable, str::Chars};
+
 use anyhow::Result;
 use thiserror::Error;
 
@@ -69,7 +71,7 @@ macro_rules! Token {
             }
     };
     [$literal:ident, &str] => { Token::new(TokenKind::Literal(LiteralKind::String($literal))) };
-    [$literal:literal, i16] => { Token::new(TokenKind::Literal(LiteralKind::Number($literal))) };
+    [$literal:ident, i16] => { Token::new(TokenKind::Literal(LiteralKind::Number($literal))) };
     [EOF] => { Token::new(TokenKind::EOF) }
 }
 
@@ -203,14 +205,41 @@ impl<'input> Lexer<'input> {
             col: 0,
         }
     }
+
+    //Get full token based on a predicate, and also update input string by starting right after the returned token
+    //thus input string will be empty if full token extend up to the end of input string
+    //the function return a tuple where the first element is the token found based on the predicate and the second element of that tuple
+    //is boolean indicate wheter the predicate was matched or not
+    fn get_full_token_and_advance<P>(
+        &mut self,
+        view: &mut Peekable<Chars<'_>>,
+        predicate: P,
+    ) -> (&'input str, bool)
+    where
+        P: FnMut(char) -> bool,
+    {
+        let mut matched = false;
+        let i = {
+            if let Some(pos) = view.position(predicate) {
+                matched = true;
+                pos
+            } else {
+                self.input.len() - 1
+            }
+        };
+        let token = &self.input[..=i];
+
+        self.input = &self.input[i + 1..];
+
+        (token, matched)
+    }
 }
 
 impl<'input> Iterator for Lexer<'input> {
     type Item = Result<Token<'input>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut chars = self.input.chars();
-        let mut view = chars.by_ref().peekable();
+        let mut view = self.input.chars().peekable();
         let mut encounted_char = 0;
         // Skip whitespaces and increment line count by 1 each time it encounter \n
         while view
@@ -249,6 +278,7 @@ impl<'input> Iterator for Lexer<'input> {
                     Some(_) | None => token_kind,
                 }
             };
+
         let token = match c {
             '(' => Token!['('],
             ')' => Token![')'],
@@ -263,7 +293,9 @@ impl<'input> Iterator for Lexer<'input> {
             '~' => Token![~],
             '=' => duplicate_token_or_add_equal_token(Token![=], Token![==], Some(Token![==])),
             '+' => duplicate_token_or_add_equal_token(Token![+], Token![+=], Some(Token![++])),
-            '-' => duplicate_token_or_add_equal_token(Token![-], Token![-=], Some(Token![--])),
+            val if val == '-' && view.next_if(|x| !x.is_numeric()).is_some() => {
+                duplicate_token_or_add_equal_token(Token![-], Token![-=], Some(Token![--]))
+            }
             '*' => duplicate_token_or_add_equal_token(Token![*], Token![*=], None),
             '/' => duplicate_token_or_add_equal_token(Token![/], Token![/=], None),
             '>' => duplicate_token_or_add_equal_token(Token![>], Token![>=], None),
@@ -271,32 +303,39 @@ impl<'input> Iterator for Lexer<'input> {
             '&' => duplicate_token_or_add_equal_token(Token![&], Token![&=], Some(Token![&&])),
             '|' => duplicate_token_or_add_equal_token(Token![|], Token![|=], Some(Token![||])),
             '0'..='9' => {
-                unimplemented!()
+                let (token_str, _) =
+                    self.get_full_token_and_advance(&mut view, |x| !x.is_numeric());
+                if let Ok(number) = token_str.parse::<i16>() {
+                    Token![number, i16]
+                } else {
+                    return Some(Err(LexerError::UnexpectedToken {
+                        found: token_str,
+                        line: self.lines,
+                    }
+                    .into()));
+                }
             }
             '"' => {
-                //let i = view.position(|x| !matches!(x, '"')).ma;
+                let (token_str, matched) = self.get_full_token_and_advance(&mut view, |x| x == '"');
 
-                unimplemented!()
+                if matched == false {}
+                Token![token_str, &str]
             }
             '_' | 'a'..='z' | 'A'..='Z' => {
-                let i = {
-                    if let Some(pos) =
-                        view.position(|x| !matches!(x, '_' | 'a'..='z' | 'A'..='Z' | '0'..='9'))
-                    {
-                        pos
-                    } else {
-                        self.input.len() - 1
-                    }
-                };
-                let token_str = &self.input[..=i];
-                self.input = &self.input[i + 1..];
+                let (token_str, _) = self.get_full_token_and_advance(
+                    &mut view,
+                    |x| !matches!(x, '_' | 'a'..='z' | 'A'..='Z' | '0'..='9'),
+                );
                 Token![token_str]
             }
             _ => {
+                let (token_str, _) =
+                    self.get_full_token_and_advance(&mut view, |x| x.is_whitespace());
                 return Some(Err(LexerError::UnexpectedToken {
-                    found: &self.input,
+                    found: token_str,
                     line: self.lines,
-                }))
+                }
+                .into()));
             }
         };
         Some(Ok(token))
